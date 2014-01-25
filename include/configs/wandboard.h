@@ -107,7 +107,8 @@
 
 #define CONFIG_EXTRA_ENV_SETTINGS \
 	"script=boot.scr\0" \
-	"uimage=uImage\0" \
+	"uimage=NEOCAST/current/vmlinuz\0" \
+	"initrd=NEOCAST/current/initrd\0" \
 	"console=ttymxc0\0" \
 	"splashpos=m,m\0" \
 	"fdt_high=0xffffffff\0" \
@@ -139,22 +140,24 @@
 		"fatload mmc ${mmcdev}:${mmcpart} ${loadaddr} ${script};\0" \
 	"bootscript=echo Running bootscript from mmc ...; " \
 		"source\0" \
+	"loadinitrd=setexpr initrdaddr $loadaddr + 0x1000000; " \
+		"fatload mmc ${mmcdev}:${mmcpart} ${initrdaddr} ${initrd}\0 " \
 	"loaduimage=fatload mmc ${mmcdev}:${mmcpart} ${loadaddr} ${uimage}\0" \
 	"loadfdt=fatload mmc ${mmcdev}:${mmcpart} ${fdt_addr} ${fdt_file}\0" \
 	"mmcboot=echo Booting from mmc ...; " \
 		"run mmcargs; " \
 		"if test ${boot_fdt} = yes || test ${boot_fdt} = try; then " \
 			"if run loadfdt; then " \
-				"bootm ${loadaddr} - ${fdt_addr}; " \
+				"bootm ${loadaddr} ${initrdaddr} ${fdt_addr}; " \
 			"else " \
 				"if test ${boot_fdt} = try; then " \
-					"bootm; " \
+					"bootm ${loadaddr} ${initrdaddr}; " \
 				"else " \
 					"echo WARN: Cannot load the DT; " \
 				"fi; " \
 			"fi; " \
 		"else " \
-			"bootm; " \
+			"bootm ${loadaddr} ${initrdaddr}; " \
 		"fi;\0" \
 	"netargs=setenv bootargs console=${console},${baudrate} " \
 		"root=/dev/nfs " \
@@ -186,7 +189,7 @@
 		   "if run loadbootscript; then " \
 			   "run bootscript; " \
 		   "else " \
-			   "if run loaduimage; then " \
+			   "if run loaduimage loadinitrd; then " \
 				   "run mmcboot; " \
 			   "else run netboot; " \
 			   "fi; " \
